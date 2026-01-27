@@ -1,0 +1,47 @@
+# Recon Analytics MCP Server
+# For Claude MCP integration
+
+FROM python:3.12-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Production image
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install runtime dependencies (fonts for document generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-dejavu-core \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -fv
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy application code
+COPY app/ /app/app/
+COPY mcp_server/ /app/mcp_server/
+
+# Create output directory
+RUN mkdir -p /app/output && chmod 777 /app/output
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV OUTPUT_DIR=/app/output
+
+# MCP server runs via stdio
+CMD ["python", "-m", "mcp_server.server"]
