@@ -11,6 +11,9 @@ from typing import Optional
 from .recon_formatter import ReconDocumentFormatter
 from .models import DocumentRequest, SectionContent
 
+# Default logo path (bundled in Docker image at /app/assets/)
+DEFAULT_LOGO_PATH = "/app/assets/recon_logo.png"
+
 
 def decode_base64_image(base64_data: str, suffix: str = ".png") -> str:
     """Decode base64 image data and save to temp file."""
@@ -76,13 +79,21 @@ def generate_document(
 
     # Add footer with logo
     logo_path = None
+    temp_logo = False
+
     if request.logo_base64:
+        # Use provided logo (base64 encoded)
         logo_path = decode_base64_image(request.logo_base64)
+        temp_logo = True
+    elif os.path.exists(DEFAULT_LOGO_PATH):
+        # Use default bundled logo
+        logo_path = DEFAULT_LOGO_PATH
+        temp_logo = False
 
     formatter.add_footer(logo_path)
 
-    # Clean up temp logo file
-    if logo_path and os.path.exists(logo_path):
+    # Clean up temp logo file (only if we created it from base64)
+    if temp_logo and logo_path and os.path.exists(logo_path):
         try:
             os.remove(logo_path)
         except Exception:

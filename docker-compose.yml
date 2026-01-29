@@ -15,7 +15,9 @@ services:
       - API_KEY=${API_KEY:-}
     volumes:
       - ./output:/app/output
-      - ./assets:/app/assets:ro
+      # Note: Assets are bundled in the image. To use a custom logo,
+      # either mount a volume here or pass logo_base64 in API requests.
+      # - ./assets:/app/assets:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
@@ -38,7 +40,7 @@ services:
       - OUTPUT_DIR=/app/output
     volumes:
       - ./output:/app/output
-      - ./assets:/app/assets:ro
+      # Note: Assets are bundled in the image
     stdin_open: true
     tty: true
 

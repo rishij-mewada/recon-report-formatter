@@ -34,9 +34,14 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code
 COPY app/ /app/app/
 COPY mcp_server/ /app/mcp_server/
+COPY scripts/ /app/scripts/
 
-# Create output directory
+# Create output and assets directories
 RUN mkdir -p /app/output && chmod 777 /app/output
+RUN mkdir -p /app/assets
+
+# Generate placeholder logo (will be overwritten if volume-mounted)
+RUN python /app/scripts/generate_logo.py /app/assets/recon_logo.png
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1

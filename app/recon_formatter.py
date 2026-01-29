@@ -96,6 +96,28 @@ class ReconDocumentFormatter:
             tcBorders.append(border)
         tcPr.append(tcBorders)
 
+    def _set_table_row_cant_split(self, table):
+        """Prevent table rows from splitting across pages."""
+        for row in table.rows:
+            tr = row._tr
+            trPr = tr.get_or_add_trPr()
+
+            # Set cantSplit to prevent row from breaking across pages
+            cant_split = OxmlElement("w:cantSplit")
+            cant_split.set(qn("w:val"), "true")
+            trPr.append(cant_split)
+
+    def _set_repeat_header_row(self, table):
+        """Set the first row to repeat as header on each page."""
+        if len(table.rows) > 0:
+            tr = table.rows[0]._tr
+            trPr = tr.get_or_add_trPr()
+
+            # Set tblHeader to repeat this row at top of each page
+            tbl_header = OxmlElement("w:tblHeader")
+            tbl_header.set(qn("w:val"), "true")
+            trPr.append(tbl_header)
+
     def add_bottom_border(self, paragraph, color: str = "595959"):
         """Add bottom border to paragraph (for H2 headings)."""
         pPr = paragraph._p.get_or_add_pPr()
@@ -325,6 +347,12 @@ class ReconDocumentFormatter:
         table = self.doc.add_table(rows=len(data) + 1, cols=len(headers))
         table.alignment = WD_TABLE_ALIGNMENT.LEFT
 
+        # Prevent table rows from breaking across pages
+        self._set_table_row_cant_split(table)
+
+        # Repeat header row if table spans multiple pages
+        self._set_repeat_header_row(table)
+
         # Header row
         for idx, (cell, text) in enumerate(zip(table.rows[0].cells, headers)):
             self.set_cell_shading(cell, HEX_COLORS["navy"])
@@ -400,14 +428,38 @@ class ReconDocumentFormatter:
         self.doc.add_paragraph()
 
     def add_paragraph(self, text: str, italic: bool = False, bold: bool = False):
-        """Add a styled body paragraph."""
+        """Add a styled body paragraph with support for embedded **bold** markers."""
         para = self.doc.add_paragraph()
-        run = para.add_run(text)
-        run.font.name = "Calibri Light"
-        run.font.size = Pt(11)
-        run.font.color.rgb = COLORS["gray_text"]
-        run.font.italic = italic
-        run.font.bold = bold
+
+        # Check if text contains **bold** markers for rich text
+        if "**" in text and not bold:
+            # Split text by bold markers and process each segment
+            import re
+            parts = re.split(r"(\*\*[^*]+\*\*)", text)
+
+            for part in parts:
+                if part.startswith("**") and part.endswith("**"):
+                    # Bold segment
+                    run = para.add_run(part[2:-2])  # Remove ** markers
+                    run.font.bold = True
+                else:
+                    # Normal segment
+                    run = para.add_run(part)
+                    run.font.bold = False
+
+                run.font.name = "Calibri Light"
+                run.font.size = Pt(11)
+                run.font.color.rgb = COLORS["gray_text"]
+                run.font.italic = italic
+        else:
+            # Simple paragraph without embedded formatting
+            run = para.add_run(text)
+            run.font.name = "Calibri Light"
+            run.font.size = Pt(11)
+            run.font.color.rgb = COLORS["gray_text"]
+            run.font.italic = italic
+            run.font.bold = bold
+
         return para
 
     def add_title_block(
