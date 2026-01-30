@@ -20,18 +20,21 @@ except ImportError:
 
 
 def generate_placeholder_logo(output_path: str, width: int = 1379, height: int = 128):
-    """Generate a placeholder Recon Analytics logo."""
+    """Generate a Recon Analytics logo matching brand standards.
+
+    Creates a light gray banner with navy wave symbol and "RECON ANALYTICS" text.
+    """
     # Brand colors
     navy = (0x20, 0x38, 0x64)  # #203864
-    white = (255, 255, 255)
+    light_gray = (0xE8, 0xE8, 0xE8)  # Light gray background
 
-    # Create image with navy background
-    img = Image.new("RGB", (width, height), navy)
+    # Create image with light gray background
+    img = Image.new("RGB", (width, height), light_gray)
     draw = ImageDraw.Draw(img)
 
     # Try to use a nice font, fall back to default
-    text = "RECON ANALYTICS"
-    font_size = 48
+    font_size = 42
+    small_font_size = 38
 
     try:
         # Try common system fonts
@@ -42,29 +45,49 @@ def generate_placeholder_logo(output_path: str, width: int = 1379, height: int =
             "C:/Windows/Fonts/arial.ttf",
         ]
         font = None
+        small_font = None
         for path in font_paths:
             if os.path.exists(path):
                 font = ImageFont.truetype(path, font_size)
+                small_font = ImageFont.truetype(path, small_font_size)
                 break
         if font is None:
             font = ImageFont.load_default()
+            small_font = font
     except Exception:
         font = ImageFont.load_default()
+        small_font = font
 
-    # Calculate text position (centered)
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    x = (width - text_width) // 2
-    y = (height - text_height) // 2
+    # Draw the wave/checkmark symbol on the left
+    # Simple stylized wave shape
+    wave_start_x = 40
+    wave_y_center = height // 2
 
-    # Draw text
-    draw.text((x, y), text, fill=white, font=font)
+    # Draw a stylized wave using lines (simplified logo mark)
+    wave_points = [
+        (wave_start_x, wave_y_center + 15),
+        (wave_start_x + 25, wave_y_center - 25),
+        (wave_start_x + 50, wave_y_center + 5),
+    ]
+    # Draw thick lines for the wave
+    for i in range(len(wave_points) - 1):
+        draw.line([wave_points[i], wave_points[i + 1]], fill=navy, width=6)
+
+    # Draw "RECON" text
+    text_x = wave_start_x + 70
+    recon_text = "RECON"
+    draw.text((text_x, height // 2 - 35), recon_text, fill=navy, font=font)
+
+    # Draw "ANALYTICS" text below RECON
+    analytics_text = "ANALYTICS"
+    draw.text((text_x, height // 2 + 5), analytics_text, fill=navy, font=small_font)
 
     # Save
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     img.save(output_path, "PNG")
-    print(f"Generated placeholder logo: {output_path}")
+    print(f"Generated Recon Analytics logo: {output_path}")
 
 
 if __name__ == "__main__":

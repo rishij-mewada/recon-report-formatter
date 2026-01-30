@@ -2,6 +2,7 @@
 Markdown parser for converting markdown to Recon document structure.
 """
 
+import logging
 import re
 from typing import Optional
 from .models import (
@@ -11,6 +12,9 @@ from .models import (
     TableData,
     TableHighlight,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Sections that should have conditional highlighting on +/- values
 HIGHLIGHT_ENABLED_SECTIONS = {
@@ -198,6 +202,15 @@ def parse_markdown(
     current_section_name = ""
     current_subsection_name = ""
 
+    def ensure_current_section():
+        """Helper to ensure we have a current section to add content to."""
+        nonlocal current_section, current_content, current_section_name
+        if current_section is None:
+            # Create an implicit section for content that appears without H2
+            current_section = DocumentSection(title="", level=2, content=[])
+            current_section_name = ""
+            current_content = []
+
     i = 0
     while i < len(lines):
         line = lines[i].rstrip()
@@ -231,6 +244,7 @@ def parse_markdown(
 
         # H3 - Subsection
         if line.startswith("### "):
+            ensure_current_section()  # Make sure we have a section to add to
             subsection_title = line[4:].strip()
             current_subsection_name = subsection_title
             current_content.append(
@@ -241,6 +255,7 @@ def parse_markdown(
 
         # H4 - Minor heading
         if line.startswith("#### "):
+            ensure_current_section()  # Make sure we have a section to add to
             minor_title = line[5:].strip()
             current_content.append(
                 SectionContent(type="minor_heading", text=minor_title)
@@ -250,6 +265,7 @@ def parse_markdown(
 
         # Table detection
         if line.startswith("|"):
+            ensure_current_section()  # Make sure we have a section to add to
             table_lines = []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 table_lines.append(lines[i])
@@ -302,6 +318,7 @@ def parse_markdown(
         if i + 1 < len(lines) and lines[i + 1].strip().startswith("|"):
             pending_caption = text
         else:
+            ensure_current_section()  # Make sure we have a section to add to
             current_content.append(
                 SectionContent(
                     type="paragraph", text=text, italic=is_italic, bold=is_bold
@@ -314,10 +331,18 @@ def parse_markdown(
     if current_section:
         current_section.content = current_content
         sections.append(current_section)
+        logger.debug(f"Saved final section with {len(current_content)} content items")
 
     # If no title found, use a default
     if not title:
         title = "Untitled Document"
+
+    # Log parsing summary
+    total_content = sum(len(s.content) for s in sections)
+    logger.info(f"Parsed markdown: title='{title}', {len(sections)} sections, {total_content} content items")
+    for i, section in enumerate(sections):
+        section_title = section.title if section.title else "(implicit)"
+        logger.debug(f"  Section {i+1}: '{section_title}' - {len(section.content)} items")
 
     return DocumentRequest(
         title=title,

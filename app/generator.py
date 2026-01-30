@@ -3,6 +3,7 @@ Document generator service for Recon Analytics reports.
 """
 
 import base64
+import logging
 import os
 import tempfile
 import uuid
@@ -10,6 +11,9 @@ from typing import Optional
 
 from .recon_formatter import ReconDocumentFormatter
 from .models import DocumentRequest, SectionContent
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Default logo path (bundled in Docker image at /app/assets/)
 DEFAULT_LOGO_PATH = "/app/assets/recon_logo.png"
@@ -44,6 +48,9 @@ def generate_document(
     Returns:
         Path to the generated document
     """
+    logger.info(f"Generating document: {request.title}")
+    logger.debug(f"Document has {len(request.sections)} sections")
+
     formatter = ReconDocumentFormatter()
     formatter.reset_caption_counters()
     formatter.setup_document()
@@ -62,11 +69,16 @@ def generate_document(
     # Add Table of Contents if requested
     if request.include_toc:
         formatter.add_table_of_contents()
+        logger.debug("Added Table of Contents")
 
     # Process sections
+    logger.debug(f"Processing {len(request.sections)} sections...")
     for section in request.sections:
         # Add section heading based on level
-        if section.level == 2:
+        section_title = section.title if section.title else "(implicit section)"
+        logger.debug(f"  Section: '{section_title}' (level {section.level}, {len(section.content)} items)")
+
+        if section.level == 2 and section.title:  # Only add heading if title exists
             formatter.add_section_heading(section.title)
         elif section.level == 3:
             formatter.add_subsection(section.title)
@@ -75,6 +87,7 @@ def generate_document(
 
         # Process section content
         for content in section.content:
+            logger.debug(f"    Content: {content.type}")
             _process_content(formatter, content)
 
     # Add footer with logo
@@ -85,12 +98,17 @@ def generate_document(
         # Use provided logo (base64 encoded)
         logo_path = decode_base64_image(request.logo_base64)
         temp_logo = True
+        logger.debug(f"Using provided logo (base64), saved to: {logo_path}")
     elif os.path.exists(DEFAULT_LOGO_PATH):
         # Use default bundled logo
         logo_path = DEFAULT_LOGO_PATH
         temp_logo = False
+        logger.debug(f"Using default logo: {logo_path}")
+    else:
+        logger.warning(f"No logo found. Default path does not exist: {DEFAULT_LOGO_PATH}")
 
     formatter.add_footer(logo_path)
+    logger.debug("Added footer")
 
     # Clean up temp logo file (only if we created it from base64)
     if temp_logo and logo_path and os.path.exists(logo_path):
@@ -109,6 +127,7 @@ def generate_document(
 
     output_path = os.path.join(output_dir, filename)
     formatter.save(output_path)
+    logger.info(f"Document saved: {output_path}")
 
     return output_path
 
