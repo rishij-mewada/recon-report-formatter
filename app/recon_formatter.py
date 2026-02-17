@@ -5,6 +5,7 @@ Creates professional Word documents matching Recon Analytics brand standards.
 """
 
 import os
+import re
 import zipfile
 from typing import Optional
 
@@ -397,10 +398,7 @@ class ReconDocumentFormatter:
                     if col_idx in numeric_cols
                     else WD_ALIGN_PARAGRAPH.LEFT
                 )
-                run = para.add_run(str(value))
-                run.font.name = "Calibri Light"
-                run.font.size = Pt(11)
-                run.font.color.rgb = COLORS["gray_text"]
+                self._add_formatted_runs(para, str(value))
 
         self.doc.add_paragraph()  # Space after table
         return table
@@ -427,39 +425,42 @@ class ReconDocumentFormatter:
 
         self.doc.add_paragraph()
 
-    def add_paragraph(self, text: str, italic: bool = False, bold: bool = False):
-        """Add a styled body paragraph with support for embedded **bold** markers."""
-        para = self.doc.add_paragraph()
-
-        # Check if text contains **bold** markers for rich text
-        if "**" in text and not bold:
-            # Split text by bold markers and process each segment
-            import re
-            parts = re.split(r"(\*\*[^*]+\*\*)", text)
-
-            for part in parts:
-                if part.startswith("**") and part.endswith("**"):
-                    # Bold segment
-                    run = para.add_run(part[2:-2])  # Remove ** markers
+    def _add_formatted_runs(
+        self, para, text: str, base_bold: bool = False, base_italic: bool = False
+    ):
+        """Parse inline **bold** and *italic* markers and add formatted runs to a paragraph."""
+        if ("**" in text or "*" in text) and not base_bold:
+            tokens = re.split(r"(\*\*[^*]+?\*\*|\*[^*]+?\*)", text)
+            for token in tokens:
+                if not token:
+                    continue
+                if token.startswith("**") and token.endswith("**"):
+                    run = para.add_run(token[2:-2])
                     run.font.bold = True
-                else:
-                    # Normal segment
-                    run = para.add_run(part)
+                    run.font.italic = base_italic
+                elif token.startswith("*") and token.endswith("*"):
+                    run = para.add_run(token[1:-1])
+                    run.font.italic = True
                     run.font.bold = False
-
+                else:
+                    run = para.add_run(token)
+                    run.font.bold = False
+                    run.font.italic = base_italic
                 run.font.name = "Calibri Light"
                 run.font.size = Pt(11)
                 run.font.color.rgb = COLORS["gray_text"]
-                run.font.italic = italic
         else:
-            # Simple paragraph without embedded formatting
             run = para.add_run(text)
             run.font.name = "Calibri Light"
             run.font.size = Pt(11)
             run.font.color.rgb = COLORS["gray_text"]
-            run.font.italic = italic
-            run.font.bold = bold
+            run.font.italic = base_italic
+            run.font.bold = base_bold
 
+    def add_paragraph(self, text: str, italic: bool = False, bold: bool = False):
+        """Add a styled body paragraph with support for inline **bold** and *italic* markers."""
+        para = self.doc.add_paragraph()
+        self._add_formatted_runs(para, text, base_bold=bold, base_italic=italic)
         return para
 
     def add_title_block(

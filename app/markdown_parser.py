@@ -310,9 +310,7 @@ def parse_markdown(
         elif is_bold:
             text = line.strip("*")
 
-        # Clean up inline formatting for display
-        text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # Remove bold markers
-        text = re.sub(r"\*(.+?)\*", r"\1", text)  # Remove italic markers
+        # Preserve inline **bold** and *italic* markers for the formatter to process
 
         # Check if this might be a caption for an upcoming table
         if i + 1 < len(lines) and lines[i + 1].strip().startswith("|"):
