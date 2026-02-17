@@ -282,25 +282,55 @@ pip install -r requirements.txt
 - Port 8000 open in firewall
 - Domain or static IP
 
-### Deploy
+### Initial Setup
 
 ```bash
 # SSH to your VPS
 ssh user@your-vps-ip
 
 # Clone repository
-git clone <repository-url> /opt/recon-formatter
-cd /opt/recon-formatter
+git clone https://github.com/rishij-mewada/recon-report-formatter /opt/recon-report-formatter
+cd /opt/recon-report-formatter
 
 # Configure
 cp .env.example .env
 nano .env  # Set BASE_URL=http://your-domain:8000
 
 # Start service
-docker-compose up -d
+docker compose up -d
 
 # Enable auto-start on boot
 docker update --restart unless-stopped recon-document-api
+```
+
+### Deploying Updates
+
+```bash
+# SSH to VPS
+ssh user@your-vps-ip
+cd /opt/recon-report-formatter
+
+# Pull latest changes
+git pull origin main
+
+# Rebuild and restart (--build is required for code changes)
+docker compose down
+docker compose up -d --build
+
+# Verify deployment
+docker compose ps
+docker compose logs --tail=20 recon-api
+curl http://localhost:8000/health
+```
+
+**Important**: Always use `--build` when deploying code changes. A plain `docker compose restart` reuses the old image and won't pick up new code.
+
+### Merging Feature Branches
+
+```bash
+git checkout main
+git merge <feature-branch>
+git push origin main
 ```
 
 ### Nginx Reverse Proxy (Optional)
