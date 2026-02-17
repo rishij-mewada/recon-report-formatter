@@ -35,13 +35,13 @@ ENV PATH=/root/.local/bin:$PATH
 COPY app/ /app/app/
 COPY mcp_server/ /app/mcp_server/
 COPY scripts/ /app/scripts/
+COPY assets/ /app/assets/
 
-# Create output and assets directories
+# Create output directory
 RUN mkdir -p /app/output && chmod 777 /app/output
-RUN mkdir -p /app/assets
 
-# Generate placeholder logo (will be overwritten if volume-mounted)
-RUN python /app/scripts/generate_logo.py /app/assets/recon_logo.png
+# Generate fallback logo only if real logo is missing
+RUN if [ ! -f /app/assets/recon_logo.png ]; then python /app/scripts/generate_logo.py /app/assets/recon_logo.png; fi
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
