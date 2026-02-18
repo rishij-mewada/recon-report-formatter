@@ -497,29 +497,85 @@ class ReconDocumentFormatter:
             run.font.color.rgb = COLORS["gray_text"]
 
     def add_footer(self, logo_path: Optional[str] = None):
-        """Add branded footer with logo on bottom-left and URL on bottom-right."""
+        """Add branded footer with full-width logo and URL."""
         section = self.doc.sections[0]
         footer = section.footer
         footer.is_linked_to_previous = False
 
-        # Paragraph 1: Logo left-aligned at natural size
+        # Paragraph 1: Anchored logo
         para1 = footer.paragraphs[0]
-        para1.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        para1.paragraph_format.space_after = Pt(2)
+        para1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        para1.paragraph_format.space_after = Pt(0)
+
+        # Add right indent
+        pPr = para1._p.get_or_add_pPr()
+        ind = OxmlElement("w:ind")
+        ind.set(qn("w:right"), "-491")
+        pPr.append(ind)
 
         if logo_path and os.path.exists(logo_path):
             run = para1.add_run()
-            # Use Inches to set width, maintaining aspect ratio
-            # Real logo is 462x110px; display at ~1.5 inches wide
-            run.add_picture(logo_path, width=Inches(1.5))
+            rId, _ = run.part.get_or_add_image(logo_path)
 
-        # Paragraph 2: URL right-aligned
+            anchor_xml = f"""
+            <wp:anchor xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                       xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
+                       xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                       distT="0" distB="0" distL="114300" distR="114300"
+                       simplePos="0" relativeHeight="251658240" behindDoc="1"
+                       locked="0" layoutInCell="1" allowOverlap="1">
+                <wp:simplePos x="0" y="0"/>
+                <wp:positionH relativeFrom="page"><wp:posOffset>0</wp:posOffset></wp:positionH>
+                <wp:positionV relativeFrom="page"><wp:posOffset>9335744</wp:posOffset></wp:positionV>
+                <wp:extent cx="7776000" cy="721774"/>
+                <wp:effectExtent l="0" t="0" r="0" b="0"/>
+                <wp:wrapNone/>
+                <wp:docPr id="2" name="Logo"/>
+                <wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>
+                <a:graphic>
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:pic>
+                            <pic:nvPicPr><pic:cNvPr id="2" name="Logo"/><pic:cNvPicPr/></pic:nvPicPr>
+                            <pic:blipFill>
+                                <a:blip r:embed="{rId}"/>
+                                <a:stretch><a:fillRect/></a:stretch>
+                            </pic:blipFill>
+                            <pic:spPr>
+                                <a:xfrm><a:off x="0" y="0"/><a:ext cx="7776000" cy="721774"/></a:xfrm>
+                                <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                            </pic:spPr>
+                        </pic:pic>
+                    </a:graphicData>
+                </a:graphic>
+            </wp:anchor>
+            """
+            anchor = parse_xml(anchor_xml)
+            drawing = OxmlElement("w:drawing")
+            drawing.append(anchor)
+            run._r.append(drawing)
+
+        # Paragraph 2: Spacer
         para2 = footer.add_paragraph()
         para2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         para2.paragraph_format.space_after = Pt(0)
-        para2.paragraph_format.space_before = Pt(0)
+        para2.paragraph_format.space_before = Pt(48)
+        pPr2 = para2._p.get_or_add_pPr()
+        ind2 = OxmlElement("w:ind")
+        ind2.set(qn("w:right"), "-491")
+        pPr2.append(ind2)
 
-        url_run = para2.add_run("www.reconanalytics.com ")
+        # Paragraph 3: URL
+        para3 = footer.add_paragraph()
+        para3.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        para3.paragraph_format.space_after = Pt(0)
+        para3.paragraph_format.space_before = Pt(0)
+        pPr3 = para3._p.get_or_add_pPr()
+        ind3 = OxmlElement("w:ind")
+        ind3.set(qn("w:right"), "-491")
+        pPr3.append(ind3)
+
+        url_run = para3.add_run("www.reconanalytics.com ")
         url_run.font.name = "Calibri Light"
         url_run.font.size = Pt(8)
         url_run.font.bold = True
