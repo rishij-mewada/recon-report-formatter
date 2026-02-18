@@ -108,7 +108,13 @@ docker compose logs --tail=20 recon-api    # should show uvicorn started
 curl http://localhost:8000/health           # should return {"status":"healthy"}
 ```
 
-Always use `--build` when deploying code changes.
+Always use `--build` when deploying code changes. Use `--no-cache` if assets (e.g. logo) have changed.
+
+## Footer Logo
+
+The footer uses an XML anchor (`<wp:anchor behindDoc="1">`) to position the logo as a full-width background bar at the bottom of every page. The real logo (`assets/recon_logo.png`, 1379x128px, ~16KB) is extracted from a working branded document and baked into the Docker image. The `scripts/generate_logo.py` placeholder only runs if the real logo file is missing.
+
+**Do not** replace the anchor XML with `run.add_picture()` — that creates an inline image and breaks the full-width background bar effect.
 
 ## Version History
 
@@ -116,3 +122,4 @@ Always use `--build` when deploying code changes.
 |---------|----------|---------|
 | v1.0.0  | Jan 2026 | Initial deployment |
 | v1.1.0  | Feb 2026 | Fixed inline markdown formatting: removed marker stripping in parser, added `_add_formatted_runs()` method, applied formatting to table cells |
+| v1.2.0  | Feb 2026 | Added real Recon Analytics logo to Docker image, restored full-width anchored footer formatting |
