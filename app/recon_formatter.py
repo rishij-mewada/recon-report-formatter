@@ -131,6 +131,26 @@ class ReconDocumentFormatter:
         pBdr.append(bottom)
         pPr.append(pBdr)
 
+    def _force_style_font(self, style, font_name: str):
+        """Force a style's font, overriding any theme font reference.
+
+        Setting ``style.font.name`` only writes the ascii/hAnsi fonts; the
+        built-in Heading styles also carry theme references
+        (``w:asciiTheme="majorHAnsi"`` etc.) which Word prefers. This sets the
+        explicit font for every script and strips the theme attributes so the
+        chosen font actually takes effect.
+        """
+        rpr = style.element.get_or_add_rPr()
+        rfonts = rpr.find(qn("w:rFonts"))
+        if rfonts is None:
+            rfonts = OxmlElement("w:rFonts")
+            rpr.append(rfonts)
+        for attr in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+            if rfonts.get(qn(f"w:{attr}")) is not None:
+                del rfonts.attrib[qn(f"w:{attr}")]
+        for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
+            rfonts.set(qn(f"w:{attr}"), font_name)
+
     def setup_document(self) -> Document:
         """Create and configure a new Recon Analytics document."""
         doc = Document()
@@ -155,10 +175,12 @@ class ReconDocumentFormatter:
         normal.font.size = Pt(11)
         normal.font.color.rgb = COLORS["gray_text"]
         normal.paragraph_format.space_after = Pt(12)
+        normal.paragraph_format.line_spacing = 1.0
 
         # Heading 1 - 16pt ALL CAPS title
         h1 = styles["Heading 1"]
         h1.font.name = "Calibri Light"
+        self._force_style_font(h1, "Calibri Light")
         h1.font.size = Pt(16)
         h1.font.bold = False
         h1.font.all_caps = True
@@ -171,6 +193,7 @@ class ReconDocumentFormatter:
         h2.font.bold = True
         h2.font.color.rgb = COLORS["gray_text"]
         h2.paragraph_format.space_before = Pt(18)
+        self._force_style_font(h2, "Calibri Light")
 
         # Heading 3 - 12pt Bold subsection
         h3 = styles["Heading 3"]
@@ -180,6 +203,7 @@ class ReconDocumentFormatter:
         h3.font.color.rgb = COLORS["gray_text"]
         h3.paragraph_format.space_before = Pt(18)
         h3.paragraph_format.space_after = Pt(6)
+        self._force_style_font(h3, "Calibri Light")
 
         # Heading 4 - 12pt Bold Italic minor heading (black)
         h4 = styles["Heading 4"]
@@ -188,6 +212,7 @@ class ReconDocumentFormatter:
         h4.font.bold = True
         h4.font.italic = True
         h4.font.color.rgb = COLORS["black"]
+        self._force_style_font(h4, "Calibri Light")
 
         self.doc = doc
         return doc
@@ -400,7 +425,6 @@ class ReconDocumentFormatter:
                 )
                 self._add_formatted_runs(para, str(value))
 
-        self.doc.add_paragraph()  # Space after table
         return table
 
     def add_figure(self, image_path: str, description: str, width_inches: float = 6.0):
