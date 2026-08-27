@@ -220,6 +220,14 @@ def parse_markdown(
             i += 1
             continue
 
+        # Explicit page break marker (opt-in per document; other digests
+        # that never emit the marker are unaffected)
+        if line.strip().lower().replace(" ", "") == "<!--pagebreak-->":
+            ensure_current_section()
+            current_content.append(SectionContent(type="page_break"))
+            i += 1
+            continue
+
         # H1 - Document title
         if line.startswith("# ") and not line.startswith("## "):
             if not title:
