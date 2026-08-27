@@ -141,6 +141,9 @@ def _process_content(formatter: ReconDocumentFormatter, content: SectionContent)
             bold=content.bold or False,
         )
 
+    elif content.type == "page_break":
+        formatter.doc.add_page_break()
+
     elif content.type == "subsection":
         formatter.add_subsection(content.text or "")
 
