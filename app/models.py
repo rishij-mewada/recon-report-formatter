@@ -60,7 +60,7 @@ class SectionContent(BaseModel):
 
     type: str = Field(
         ...,
-        description="Content type: 'paragraph', 'table', 'figure', 'chart', 'subsection', 'minor_heading'",
+        description="Content type: 'paragraph', 'table', 'figure', 'chart', 'subsection', 'minor_heading', 'page_break'",
     )
     text: Optional[str] = Field(None, description="Text content (for paragraph/heading)")
     italic: Optional[bool] = Field(False, description="Italic text (for paragraph)")
