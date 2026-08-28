@@ -452,6 +452,20 @@ class ReconDocumentFormatter:
     def _add_formatted_runs(
         self, para, text: str, base_bold: bool = False, base_italic: bool = False
     ):
+        """Render text with <br> line breaks plus inline **bold**/*italic* markers.
+
+        Content-gated: text without a <br> tag renders exactly as before, so
+        documents that never emit the tag are unaffected.
+        """
+        segments = re.split(r"<br\s*/?>", text, flags=re.IGNORECASE)
+        for seg_idx, segment in enumerate(segments):
+            if seg_idx:
+                para.add_run().add_break()
+            self._add_formatted_segment(para, segment, base_bold, base_italic)
+
+    def _add_formatted_segment(
+        self, para, text: str, base_bold: bool = False, base_italic: bool = False
+    ):
         """Parse inline **bold** and *italic* markers and add formatted runs to a paragraph."""
         if ("**" in text or "*" in text) and not base_bold:
             tokens = re.split(r"(\*\*[^*]+?\*\*|\*[^*]+?\*)", text)
