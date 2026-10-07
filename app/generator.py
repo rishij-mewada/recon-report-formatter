@@ -141,6 +141,9 @@ def _process_content(formatter: ReconDocumentFormatter, content: SectionContent)
             bold=content.bold or False,
         )
 
+    elif content.type == "bullet":
+        formatter.add_bullet(content.text or "", level=content.level or 1)
+
     elif content.type == "page_break":
         formatter.doc.add_page_break()
 
