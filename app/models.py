@@ -60,8 +60,9 @@ class SectionContent(BaseModel):
 
     type: str = Field(
         ...,
-        description="Content type: 'paragraph', 'table', 'figure', 'chart', 'subsection', 'minor_heading', 'page_break'",
+        description="Content type: 'paragraph', 'table', 'figure', 'chart', 'subsection', 'minor_heading', 'page_break', 'bullet'",
     )
+    level: Optional[int] = Field(None, description="Bullet nesting level, 1 or 2 (for bullet)")
     text: Optional[str] = Field(None, description="Text content (for paragraph/heading)")
     italic: Optional[bool] = Field(False, description="Italic text (for paragraph)")
     bold: Optional[bool] = Field(False, description="Bold text (for paragraph)")
