@@ -501,6 +501,18 @@ class ReconDocumentFormatter:
         self._add_formatted_runs(para, text, base_bold=bold, base_italic=italic)
         return para
 
+    def add_bullet(self, text: str, level: int = 1):
+        """Add a bulleted paragraph (Word List Bullet styles), with inline markers."""
+        style = "List Bullet 2" if level >= 2 else "List Bullet"
+        try:
+            para = self.doc.add_paragraph(style=style)
+        except KeyError:
+            para = self.doc.add_paragraph()
+            text = ("    " if level >= 2 else "") + "\u2022 " + text
+        para.paragraph_format.space_after = Pt(2)
+        self._add_formatted_runs(para, text)
+        return para
+
     def add_title_block(
         self,
         title: str,
