@@ -307,6 +307,20 @@ def parse_markdown(
             i += 1
             continue
 
+        # Bullet item: '- text' or '• text'; two leading spaces (or a tab)
+        # nest it one level. '*' is not a bullet marker here so that
+        # *italic* and **bold** paragraphs keep their meaning.
+        bullet = re.match(r"^(\s*)[-\u2022]\s+(.+)$", lines[i])
+        if bullet:
+            ensure_current_section()
+            indent = bullet.group(1).replace("\t", "  ")
+            current_content.append(
+                SectionContent(type="bullet", text=bullet.group(2).strip(),
+                               level=2 if len(indent) >= 2 else 1)
+            )
+            i += 1
+            continue
+
         # Regular paragraph
         # Check for bold/italic markers
         is_italic = line.startswith("*") and line.endswith("*") and not line.startswith("**")
